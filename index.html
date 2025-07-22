@@ -47,7 +47,9 @@
     <button id="export-csv">Export as CSV</button>
     <input type="file" id="import-csv" accept=".csv">
     <button id="validate-data">Validate Data</button>
-    <button id="correct-data">Correct Data</button>
+    <button id="approve-top-5">Approve Top 5</button>
+    <button id="approve-top-10">Approve Top 10</button>
+    <button id="approve-all">Approve All</button>
     <div id="progress-bar-container" style="display: none;">
         <div id="progress-bar" style="width: 0%; height: 20px; background-color: yellow;"></div>
     </div>
@@ -71,32 +73,6 @@
     <h2>Log</h2>
     <div id="log"></div>
 
-    <div id="correction-modal" style="display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
-        <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%;">
-            <h2>Correction Suggestion</h2>
-            <p><strong>Employee ID:</strong> <span id="employee-id-correction"></span></p>
-            <p><strong>Field:</strong> <span id="correction-field"></span></p>
-            <p><strong>Original Value:</strong> <span id="original-value"></span></p>
-            <p><strong>Suggested Value:</strong> <span id="suggested-value"></span></p>
-            <button id="manual-correction-btn">Manual Correction</button>
-            <button id="agree-correction">Agree</button>
-            <button id="agree-all-correction">Agree to All</button>
-            <button id="skip-correction">Skip</button>
-            <button id="cancel-correction">Cancel</button>
-        </div>
-    </div>
-
-    <div id="manual-correction-modal" style="display: none; position: fixed; z-index: 2; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
-        <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%;">
-            <h2>Manual Correction</h2>
-            <input type="text" id="manual-correction-input">
-            <button id="title-case-btn">Title Case</button>
-            <button id="upper-case-btn">Upper Case</button>
-            <button id="lower-case-btn">Lower Case</button>
-            <button id="save-manual-correction">Save</button>
-            <button id="cancel-manual-correction">Cancel</button>
-        </div>
-    </div>
 
     <script>
         const addRecordForm = document.getElementById('add-record-form');
@@ -121,19 +97,21 @@
 
         function renderTable() {
             payrollTableBody.innerHTML = '';
-            payrollData.forEach(record => {
+            payrollData.forEach((record, index) => {
                 const row = document.createElement('tr');
+                let rowHTML = `<td>${record.employeeId}</td>`;
+                for (const field in record) {
+                    if (field === 'employeeId') continue;
+                    const error = validationErrors.find(e => e.index === index && e.field === field);
+                    if (error) {
+                        rowHTML += `<td><span style="background-color: yellow; text-decoration: line-through;">${record[field]}</span> <span style="background-color: turquoise;">${error.suggestion}</span></td>`;
+                    } else {
+                        rowHTML += `<td>${record[field]}</td>`;
+                    }
+                }
                 const grossPay = record.hoursWorked * record.hourlyRate;
-                row.innerHTML = `
-                    <td>${record.employeeId}</td>
-                    <td>${record.name}</td>
-                    <td>${record.hoursWorked}</td>
-                    <td>${record.hourlyRate}</td>
-                    <td>${grossPay.toFixed(2)}</td>
-                    <td>${record.email}</td>
-                    <td>${record.state}</td>
-                    <td>${record.country}</td>
-                `;
+                rowHTML += `<td>${grossPay.toFixed(2)}</td>`;
+                row.innerHTML = rowHTML;
                 payrollTableBody.appendChild(row);
             });
         }
@@ -278,88 +256,25 @@
             });
         });
 
-        let currentErrorIndex = 0;
-        let agreeToAll = false;
-
-        function showCorrectionModal() {
-            if (currentErrorIndex >= validationErrors.length) {
-                document.getElementById('log').innerHTML = 'All errors processed.';
-                document.getElementById('correction-modal').style.display = 'none';
-                renderTable();
-                return;
-            }
-
-            const error = validationErrors[currentErrorIndex];
-            document.getElementById('employee-id-correction').textContent = payrollData[error.index].employeeId;
-            document.getElementById('correction-field').textContent = error.field;
-            document.getElementById('original-value').textContent = payrollData[error.index][error.field];
-            document.getElementById('suggested-value').textContent = error.suggestion;
-            document.getElementById('correction-modal').style.display = 'block';
-        }
-
-        document.getElementById('correct-data').addEventListener('click', () => {
-            currentErrorIndex = 0;
-            agreeToAll = false;
-            showCorrectionModal();
-        });
-
-        document.getElementById('agree-correction').addEventListener('click', () => {
-            const error = validationErrors[currentErrorIndex];
-            payrollData[error.index][error.field] = document.getElementById('suggested-value').textContent;
-            currentErrorIndex++;
-            showCorrectionModal();
-        });
-
-        document.getElementById('agree-all-correction').addEventListener('click', () => {
-            agreeToAll = true;
-            validationErrors.forEach(error => {
+        function approveCorrections(count) {
+            const errorsToCorrect = validationErrors.slice(0, count);
+            errorsToCorrect.forEach(error => {
                 payrollData[error.index][error.field] = error.suggestion;
             });
-            currentErrorIndex = validationErrors.length;
-            showCorrectionModal();
+            validationErrors.splice(0, count);
+            renderTable();
+        }
+
+        document.getElementById('approve-top-5').addEventListener('click', () => {
+            approveCorrections(5);
         });
 
-        document.getElementById('skip-correction').addEventListener('click', () => {
-            currentErrorIndex++;
-            showCorrectionModal();
+        document.getElementById('approve-top-10').addEventListener('click', () => {
+            approveCorrections(10);
         });
 
-        document.getElementById('cancel-correction').addEventListener('click', () => {
-            currentErrorIndex = validationErrors.length;
-            showCorrectionModal();
-        });
-
-        document.getElementById('manual-correction-btn').addEventListener('click', () => {
-            document.getElementById('manual-correction-modal').style.display = 'block';
-            document.getElementById('manual-correction-input').value = document.getElementById('suggested-value').textContent;
-        });
-
-        document.getElementById('cancel-manual-correction').addEventListener('click', () => {
-            document.getElementById('manual-correction-modal').style.display = 'none';
-        });
-
-        document.getElementById('save-manual-correction').addEventListener('click', () => {
-            const manualCorrection = document.getElementById('manual-correction-input').value;
-            const error = validationErrors[currentErrorIndex];
-            payrollData[error.index][error.field] = manualCorrection;
-            validationErrors.splice(currentErrorIndex, 1);
-            document.getElementById('manual-correction-modal').style.display = 'none';
-            showCorrectionModal();
-        });
-
-        document.getElementById('title-case-btn').addEventListener('click', () => {
-            const input = document.getElementById('manual-correction-input');
-            input.value = input.value.toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
-        });
-
-        document.getElementById('upper-case-btn').addEventListener('click', () => {
-            const input = document.getElementById('manual-correction-input');
-            input.value = input.value.toUpperCase();
-        });
-
-        document.getElementById('lower-case-btn').addEventListener('click', () => {
-            const input = document.getElementById('manual-correction-input');
-            input.value = input.value.toLowerCase();
+        document.getElementById('approve-all').addEventListener('click', () => {
+            approveCorrections(validationErrors.length);
         });
     </script>
 </body>
