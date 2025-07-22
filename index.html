@@ -71,6 +71,20 @@
     <h2>Log</h2>
     <div id="log"></div>
 
+    <div id="correction-modal" style="display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+        <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%;">
+            <h2>Correction Suggestion</h2>
+            <p><strong>Field:</strong> <span id="correction-field"></span></p>
+            <p><strong>Original Value:</strong> <span id="original-value"></span></p>
+            <p><strong>Suggested Value:</strong> <span id="suggested-value"></span></p>
+            <input type="text" id="manual-correction" placeholder="Enter your own value">
+            <button id="agree-correction">Agree</button>
+            <button id="agree-all-correction">Agree to All</button>
+            <button id="skip-correction">Skip</button>
+            <button id="cancel-correction">Cancel</button>
+        </div>
+    </div>
+
     <script>
         const addRecordForm = document.getElementById('add-record-form');
         const payrollTableBody = document.querySelector('#payroll-table tbody');
@@ -210,11 +224,13 @@
 
                 payrollData.forEach((record, index) => {
                     // Name checks
-                    if (record.name !== record.name.trim()) {
-                        validationErrors.push({index, field: 'name', suggestion: record.name.trim(), message: `Extra spaces in name for ${record.name}`});
+                    const trimmedName = record.name.trim();
+                    if (record.name !== trimmedName) {
+                        validationErrors.push({index, field: 'name', suggestion: trimmedName, message: `Extra spaces in name for ${record.name}`});
                     }
-                    if (record.name !== record.name.toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ')) {
-                        validationErrors.push({index, field: 'name', suggestion: record.name.toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' '), message: `Incorrect capitalization for ${record.name}`});
+                    const capitalizedName = trimmedName.toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
+                    if (trimmedName !== capitalizedName) {
+                        validationErrors.push({index, field: 'name', suggestion: capitalizedName, message: `Incorrect capitalization for ${record.name}`});
                     }
 
                     // Hours and Rate checks
@@ -227,15 +243,22 @@
 
                     // Email check
                     if (!emailRegex.test(record.email)) {
-                        validationErrors.push({index, field: 'email', suggestion: 'user@example.com', message: `Invalid email format for ${record.name}`});
+                        const nameParts = capitalizedName.toLowerCase().split(' ');
+                        const suggestedEmail = `${nameParts[0]}.${nameParts[1]}@example.com`;
+                        validationErrors.push({index, field: 'email', suggestion: suggestedEmail, message: `Invalid email format for ${record.name}`});
                     }
 
                     // State and Country checks
-                    if (record.state.trim().toLowerCase() === 'new yrok') {
-                        validationErrors.push({index, field: 'state', suggestion: 'New York', message: `Potential misspelling in state for ${record.name}`});
+                    const stateCorrections = {'new yrok': 'New York'};
+                    const countryCorrections = {'u.s.a.': 'USA', 'united states': 'USA'};
+                    const trimmedState = record.state.trim().toLowerCase();
+                    const trimmedCountry = record.country.trim().toLowerCase();
+
+                    if (stateCorrections[trimmedState]) {
+                        validationErrors.push({index, field: 'state', suggestion: stateCorrections[trimmedState], message: `Potential misspelling in state for ${record.name}`});
                     }
-                     if (record.country.trim().toLowerCase() === 'u.s.a.') {
-                        validationErrors.push({index, field: 'country', suggestion: 'USA', message: `Potential misspelling in country for ${record.name}`});
+                     if (countryCorrections[trimmedCountry]) {
+                        validationErrors.push({index, field: 'country', suggestion: countryCorrections[trimmedCountry], message: `Potential misspelling in country for ${record.name}`});
                     }
                 });
 
@@ -247,19 +270,59 @@
             });
         });
 
+        let currentErrorIndex = 0;
+        let agreeToAll = false;
+
+        function showCorrectionModal() {
+            if (currentErrorIndex >= validationErrors.length) {
+                document.getElementById('log').innerHTML = 'All errors processed.';
+                document.getElementById('correction-modal').style.display = 'none';
+                renderTable();
+                return;
+            }
+
+            const error = validationErrors[currentErrorIndex];
+            document.getElementById('correction-field').textContent = error.field;
+            document.getElementById('original-value').textContent = payrollData[error.index][error.field];
+            document.getElementById('suggested-value').textContent = error.suggestion;
+            document.getElementById('correction-modal').style.display = 'block';
+        }
+
         document.getElementById('correct-data').addEventListener('click', () => {
-            simulateProgress('green', () => {
-                if (validationErrors.length > 0) {
-                    validationErrors.forEach(error => {
-                        payrollData[error.index][error.field] = error.suggestion;
-                    });
-                    renderTable();
-                    document.getElementById('log').innerHTML = 'Data corrected.';
-                    validationErrors = [];
-                } else {
-                    document.getElementById('log').innerHTML = 'No errors to correct.';
-                }
+            currentErrorIndex = 0;
+            agreeToAll = false;
+            showCorrectionModal();
+        });
+
+        document.getElementById('agree-correction').addEventListener('click', () => {
+            const error = validationErrors[currentErrorIndex];
+            const manualCorrection = document.getElementById('manual-correction').value;
+            if (manualCorrection) {
+                payrollData[error.index][error.field] = manualCorrection;
+            } else {
+                payrollData[error.index][error.field] = error.suggestion;
+            }
+            currentErrorIndex++;
+            showCorrectionModal();
+        });
+
+        document.getElementById('agree-all-correction').addEventListener('click', () => {
+            agreeToAll = true;
+            validationErrors.forEach(error => {
+                payrollData[error.index][error.field] = error.suggestion;
             });
+            currentErrorIndex = validationErrors.length;
+            showCorrectionModal();
+        });
+
+        document.getElementById('skip-correction').addEventListener('click', () => {
+            currentErrorIndex++;
+            showCorrectionModal();
+        });
+
+        document.getElementById('cancel-correction').addEventListener('click', () => {
+            currentErrorIndex = validationErrors.length;
+            showCorrectionModal();
         });
     </script>
 </body>
