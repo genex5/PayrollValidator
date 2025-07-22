@@ -74,6 +74,7 @@
     <div id="correction-modal" style="display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
         <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%;">
             <h2>Correction Suggestion</h2>
+            <p><strong>Employee ID:</strong> <span id="employee-id-correction"></span></p>
             <p><strong>Field:</strong> <span id="correction-field"></span></p>
             <p><strong>Original Value:</strong> <span id="original-value"></span></p>
             <p><strong>Suggested Value:</strong> <span id="suggested-value"></span></p>
@@ -294,6 +295,7 @@
             }
 
             const error = validationErrors[currentErrorIndex];
+            document.getElementById('employee-id-correction').textContent = payrollData[error.index].employeeId;
             document.getElementById('correction-field').textContent = error.field;
             document.getElementById('original-value').textContent = payrollData[error.index][error.field];
             document.getElementById('suggested-value').textContent = error.suggestion;
@@ -343,8 +345,11 @@
 
         document.getElementById('save-manual-correction').addEventListener('click', () => {
             const manualCorrection = document.getElementById('manual-correction-input').value;
-            document.getElementById('suggested-value').textContent = manualCorrection;
+            const error = validationErrors[currentErrorIndex];
+            payrollData[error.index][error.field] = manualCorrection;
+            validationErrors.splice(currentErrorIndex, 1);
             document.getElementById('manual-correction-modal').style.display = 'none';
+            showCorrectionModal();
         });
 
         document.getElementById('title-case-btn').addEventListener('click', () => {
