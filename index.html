@@ -252,7 +252,7 @@
 
                     // Email check
                     if (!emailRegex.test(record.email)) {
-                        const nameParts = capitalizedName.toLowerCase().split(' ');
+                        const nameParts = cleanedName.toLowerCase().split(' ');
                         const suggestedEmail = `${nameParts[0]}.${nameParts[1]}@example.com`;
                         validationErrors.push({index, field: 'email', suggestion: suggestedEmail, message: `Invalid email format for ${record.name}`});
                     }
