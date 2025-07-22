@@ -111,7 +111,7 @@
             const rows = payrollData.map(record =>
                 `${record.employeeId},${record.name},${record.hoursWorked},${record.hourlyRate}`
             );
-            const csv = [headers.join(','), ...rows].join('\\n');
+            const csv = [headers.join(','), ...rows].join('\n');
             downloadCSV(csv, 'payroll.csv');
         }
 
@@ -124,7 +124,7 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const text = e.target.result;
-                    const rows = text.replace(/\\r/g, '').split('\\n').slice(1);
+                    const rows = text.replace(/\r\n/g, '\n').split('\n').slice(1);
                     rows.forEach(row => {
                         const [employeeId, name, hoursWorked, hourlyRate] = row.split(',');
                         if (employeeId && name && hoursWorked && hourlyRate) {
