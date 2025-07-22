@@ -36,6 +36,9 @@
         <input type="text" id="name" placeholder="Name" required>
         <input type="number" id="hours-worked" placeholder="Hours Worked" required>
         <input type="number" id="hourly-rate" placeholder="Hourly Rate" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="text" id="state" placeholder="State" required>
+        <input type="text" id="country" placeholder="Country" required>
         <button type="submit">Add Record</button>
     </form>
 
@@ -45,6 +48,9 @@
     <input type="file" id="import-csv" accept=".csv">
     <button id="validate-data">Validate Data</button>
     <button id="correct-data">Correct Data</button>
+    <div id="progress-bar-container" style="display: none;">
+        <div id="progress-bar" style="width: 0%; height: 20px; background-color: yellow;"></div>
+    </div>
     <table id="payroll-table">
         <thead>
             <tr>
@@ -53,6 +59,9 @@
                 <th>Hours Worked</th>
                 <th>Hourly Rate</th>
                 <th>Gross Pay</th>
+                <th>Email</th>
+                <th>State</th>
+                <th>Country</th>
             </tr>
         </thead>
         <tbody>
@@ -73,7 +82,10 @@
                 employeeId: document.getElementById('employee-id').value,
                 name: document.getElementById('name').value,
                 hoursWorked: parseFloat(document.getElementById('hours-worked').value),
-                hourlyRate: parseFloat(document.getElementById('hourly-rate').value)
+                hourlyRate: parseFloat(document.getElementById('hourly-rate').value),
+                email: document.getElementById('email').value,
+                state: document.getElementById('state').value,
+                country: document.getElementById('country').value
             };
             payrollData.push(newRecord);
             renderTable();
@@ -91,6 +103,9 @@
                     <td>${record.hoursWorked}</td>
                     <td>${record.hourlyRate}</td>
                     <td>${grossPay.toFixed(2)}</td>
+                    <td>${record.email}</td>
+                    <td>${record.state}</td>
+                    <td>${record.country}</td>
                 `;
                 payrollTableBody.appendChild(row);
             });
@@ -107,9 +122,9 @@
         }
 
         function exportToCSV() {
-            const headers = ['Employee ID', 'Name', 'Hours Worked', 'Hourly Rate'];
+            const headers = ['Employee ID', 'Name', 'Hours Worked', 'Hourly Rate', 'Email', 'State', 'Country'];
             const rows = payrollData.map(record =>
-                `${record.employeeId},${record.name},${record.hoursWorked},${record.hourlyRate}`
+                `${record.employeeId},${record.name},${record.hoursWorked},${record.hourlyRate},${record.email},${record.state},${record.country}`
             );
             const csv = [headers.join(','), ...rows].join('\n');
             downloadCSV(csv, 'payroll.csv');
@@ -126,13 +141,16 @@
                     const text = e.target.result;
                     const rows = text.replace(/\r\n/g, '\n').split('\n').slice(1);
                     rows.forEach(row => {
-                        const [employeeId, name, hoursWorked, hourlyRate] = row.split(',');
+                        const [employeeId, name, hoursWorked, hourlyRate, email, state, country] = row.split(',');
                         if (employeeId && name && hoursWorked && hourlyRate) {
                             payrollData.push({
                                 employeeId,
                                 name,
                                 hoursWorked: parseFloat(hoursWorked),
-                                hourlyRate: parseFloat(hourlyRate)
+                                hourlyRate: parseFloat(hourlyRate),
+                                email,
+                                state,
+                                country
                             });
                         }
                     });
@@ -164,17 +182,84 @@
             }
         });
 
-        document.getElementById('correct-data').addEventListener('click', () => {
-            if (validationErrors.length > 0) {
-                validationErrors.forEach(error => {
-                    payrollData[error.index][error.field] = error.suggestion;
-                });
-                renderTable();
-                document.getElementById('log').innerHTML = 'Data corrected.';
+        function simulateProgress(color, onComplete) {
+            const progressBarContainer = document.getElementById('progress-bar-container');
+            const progressBar = document.getElementById('progress-bar');
+            progressBarContainer.style.display = 'block';
+            progressBar.style.backgroundColor = color;
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                    progressBarContainer.style.display = 'none';
+                    onComplete();
+                } else {
+                    width++;
+                    progressBar.style.width = width + '%';
+                }
+            }, 10);
+        }
+
+        document.getElementById('validate-data').addEventListener('click', () => {
+            simulateProgress('yellow', () => {
                 validationErrors = [];
-            } else {
-                document.getElementById('log').innerHTML = 'No errors to correct.';
-            }
+                const log = document.getElementById('log');
+                log.innerHTML = '';
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                payrollData.forEach((record, index) => {
+                    // Name checks
+                    if (record.name !== record.name.trim()) {
+                        validationErrors.push({index, field: 'name', suggestion: record.name.trim(), message: `Extra spaces in name for ${record.name}`});
+                    }
+                    if (record.name !== record.name.toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ')) {
+                        validationErrors.push({index, field: 'name', suggestion: record.name.toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' '), message: `Incorrect capitalization for ${record.name}`});
+                    }
+
+                    // Hours and Rate checks
+                    if (isNaN(record.hoursWorked) || record.hoursWorked <= 0) {
+                        validationErrors.push({index, field: 'hoursWorked', suggestion: 40, message: `Invalid hours worked for ${record.name}`});
+                    }
+                    if (isNaN(record.hourlyRate) || record.hourlyRate <= 0) {
+                        validationErrors.push({index, field: 'hourlyRate', suggestion: 15, message: `Invalid hourly rate for ${record.name}`});
+                    }
+
+                    // Email check
+                    if (!emailRegex.test(record.email)) {
+                        validationErrors.push({index, field: 'email', suggestion: 'user@example.com', message: `Invalid email format for ${record.name}`});
+                    }
+
+                    // State and Country checks
+                    if (record.state.trim().toLowerCase() === 'new yrok') {
+                        validationErrors.push({index, field: 'state', suggestion: 'New York', message: `Potential misspelling in state for ${record.name}`});
+                    }
+                     if (record.country.trim().toLowerCase() === 'u.s.a.') {
+                        validationErrors.push({index, field: 'country', suggestion: 'USA', message: `Potential misspelling in country for ${record.name}`});
+                    }
+                });
+
+                if (validationErrors.length > 0) {
+                    log.innerHTML = 'Validation Errors Found:\\n' + validationErrors.map(e => e.message).join('\\n');
+                } else {
+                    log.innerHTML = 'No validation errors found.';
+                }
+            });
+        });
+
+        document.getElementById('correct-data').addEventListener('click', () => {
+            simulateProgress('green', () => {
+                if (validationErrors.length > 0) {
+                    validationErrors.forEach(error => {
+                        payrollData[error.index][error.field] = error.suggestion;
+                    });
+                    renderTable();
+                    document.getElementById('log').innerHTML = 'Data corrected.';
+                    validationErrors = [];
+                } else {
+                    document.getElementById('log').innerHTML = 'No errors to correct.';
+                }
+            });
         });
     </script>
 </body>
