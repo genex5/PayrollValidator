@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payroll Data Management</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        #log {
+            white-space: pre-wrap;
+            background: #eee;
+            padding: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Payroll Data Management</h1>
+
+    <h2>Add New Record</h2>
+    <form id="add-record-form">
+        <input type="text" id="employee-id" placeholder="Employee ID" required>
+        <input type="text" id="name" placeholder="Name" required>
+        <input type="number" id="hours-worked" placeholder="Hours Worked" required>
+        <input type="number" id="hourly-rate" placeholder="Hourly Rate" required>
+        <button type="submit">Add Record</button>
+    </form>
+
+    <h2>Payroll Data</h2>
+    <button id="save-csv">Save as CSV</button>
+    <button id="export-csv">Export as CSV</button>
+    <input type="file" id="import-csv" accept=".csv">
+    <button id="validate-data">Validate Data</button>
+    <button id="correct-data">Correct Data</button>
+    <table id="payroll-table">
+        <thead>
+            <tr>
+                <th>Employee ID</th>
+                <th>Name</th>
+                <th>Hours Worked</th>
+                <th>Hourly Rate</th>
+                <th>Gross Pay</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <h2>Log</h2>
+    <div id="log"></div>
+
+    <script>
+        const addRecordForm = document.getElementById('add-record-form');
+        const payrollTableBody = document.querySelector('#payroll-table tbody');
+        let payrollData = [];
+
+        addRecordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newRecord = {
+                employeeId: document.getElementById('employee-id').value,
+                name: document.getElementById('name').value,
+                hoursWorked: parseFloat(document.getElementById('hours-worked').value),
+                hourlyRate: parseFloat(document.getElementById('hourly-rate').value)
+            };
+            payrollData.push(newRecord);
+            renderTable();
+            addRecordForm.reset();
+        });
+
+        function renderTable() {
+            payrollTableBody.innerHTML = '';
+            payrollData.forEach(record => {
+                const row = document.createElement('tr');
+                const grossPay = record.hoursWorked * record.hourlyRate;
+                row.innerHTML = `
+                    <td>${record.employeeId}</td>
+                    <td>${record.name}</td>
+                    <td>${record.hoursWorked}</td>
+                    <td>${record.hourlyRate}</td>
+                    <td>${grossPay.toFixed(2)}</td>
+                `;
+                payrollTableBody.appendChild(row);
+            });
+        }
+
+        function downloadCSV(csv, filename) {
+            const csvFile = new Blob([csv], {type: 'text/csv'});
+            const downloadLink = document.createElement('a');
+            downloadLink.download = filename;
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = 'none';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+        }
+
+        function exportToCSV() {
+            const headers = ['Employee ID', 'Name', 'Hours Worked', 'Hourly Rate'];
+            const rows = payrollData.map(record =>
+                `${record.employeeId},${record.name},${record.hoursWorked},${record.hourlyRate}`
+            );
+            const csv = [headers.join(','), ...rows].join('\\n');
+            downloadCSV(csv, 'payroll.csv');
+        }
+
+        document.getElementById('save-csv').addEventListener('click', exportToCSV);
+        document.getElementById('export-csv').addEventListener('click', exportToCSV);
+
+        document.getElementById('import-csv').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const text = e.target.result;
+                    const rows = text.replace(/\\r/g, '').split('\\n').slice(1);
+                    rows.forEach(row => {
+                        const [employeeId, name, hoursWorked, hourlyRate] = row.split(',');
+                        if (employeeId && name && hoursWorked && hourlyRate) {
+                            payrollData.push({
+                                employeeId,
+                                name,
+                                hoursWorked: parseFloat(hoursWorked),
+                                hourlyRate: parseFloat(hourlyRate)
+                            });
+                        }
+                    });
+                    renderTable();
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        let validationErrors = [];
+        document.getElementById('validate-data').addEventListener('click', () => {
+            validationErrors = [];
+            const log = document.getElementById('log');
+            log.innerHTML = '';
+
+            payrollData.forEach((record, index) => {
+                if (isNaN(record.hoursWorked) || record.hoursWorked <= 0) {
+                    validationErrors.push({index, field: 'hoursWorked', suggestion: 40, message: `Invalid hours worked for ${record.name}`});
+                }
+                if (isNaN(record.hourlyRate) || record.hourlyRate <= 0) {
+                    validationErrors.push({index, field: 'hourlyRate', suggestion: 15, message: `Invalid hourly rate for ${record.name}`});
+                }
+            });
+
+            if (validationErrors.length > 0) {
+                log.innerHTML = 'Validation Errors Found:\\n' + validationErrors.map(e => e.message).join('\\n');
+            } else {
+                log.innerHTML = 'No validation errors found.';
+            }
+        });
+
+        document.getElementById('correct-data').addEventListener('click', () => {
+            if (validationErrors.length > 0) {
+                validationErrors.forEach(error => {
+                    payrollData[error.index][error.field] = error.suggestion;
+                });
+                renderTable();
+                document.getElementById('log').innerHTML = 'Data corrected.';
+                validationErrors = [];
+            } else {
+                document.getElementById('log').innerHTML = 'No errors to correct.';
+            }
+        });
+    </script>
+</body>
+</html>
