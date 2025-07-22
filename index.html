@@ -237,13 +237,9 @@
 
                 payrollData.forEach((record, index) => {
                     // Name checks
-                    const trimmedName = record.name.trim();
-                    if (record.name !== trimmedName) {
-                        validationErrors.push({index, field: 'name', suggestion: trimmedName, message: `Extra spaces in name for ${record.name}`});
-                    }
-                    const capitalizedName = trimmedName.toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
-                    if (trimmedName !== capitalizedName) {
-                        validationErrors.push({index, field: 'name', suggestion: capitalizedName, message: `Incorrect capitalization for ${record.name}`});
+                    const cleanedName = record.name.trim().toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
+                    if (record.name !== cleanedName) {
+                        validationErrors.push({index, field: 'name', suggestion: cleanedName, message: `Formatting issues in name for ${record.name}`});
                     }
 
                     // Hours and Rate checks
@@ -262,14 +258,13 @@
                     }
 
                     // State and Country checks
-                    const stateCorrections = {'new yrok': 'New York'};
-                    const countryCorrections = {'u.s.a.': 'USA', 'united states': 'USA'};
-                    const trimmedState = record.state.trim().toLowerCase();
-                    const trimmedCountry = record.country.trim().toLowerCase();
-
-                    if (stateCorrections[trimmedState]) {
-                        validationErrors.push({index, field: 'state', suggestion: stateCorrections[trimmedState], message: `Potential misspelling in state for ${record.name}`});
+                    const cleanedState = record.state.trim().toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
+                    if (record.state !== cleanedState) {
+                        validationErrors.push({index, field: 'state', suggestion: cleanedState, message: `Formatting issues in state for ${record.name}`});
                     }
+
+                    const countryCorrections = {'u.s.a.': 'USA', 'united states': 'USA'};
+                    const trimmedCountry = record.country.trim().toLowerCase();
                      if (countryCorrections[trimmedCountry]) {
                         validationErrors.push({index, field: 'country', suggestion: countryCorrections[trimmedCountry], message: `Potential misspelling in country for ${record.name}`});
                     }
