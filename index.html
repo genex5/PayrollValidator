@@ -77,11 +77,23 @@
             <p><strong>Field:</strong> <span id="correction-field"></span></p>
             <p><strong>Original Value:</strong> <span id="original-value"></span></p>
             <p><strong>Suggested Value:</strong> <span id="suggested-value"></span></p>
-            <input type="text" id="manual-correction" placeholder="Enter your own value">
+            <button id="manual-correction-btn">Manual Correction</button>
             <button id="agree-correction">Agree</button>
             <button id="agree-all-correction">Agree to All</button>
             <button id="skip-correction">Skip</button>
             <button id="cancel-correction">Cancel</button>
+        </div>
+    </div>
+
+    <div id="manual-correction-modal" style="display: none; position: fixed; z-index: 2; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+        <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%;">
+            <h2>Manual Correction</h2>
+            <input type="text" id="manual-correction-input">
+            <button id="title-case-btn">Title Case</button>
+            <button id="upper-case-btn">Upper Case</button>
+            <button id="lower-case-btn">Lower Case</button>
+            <button id="save-manual-correction">Save</button>
+            <button id="cancel-manual-correction">Cancel</button>
         </div>
     </div>
 
@@ -296,12 +308,7 @@
 
         document.getElementById('agree-correction').addEventListener('click', () => {
             const error = validationErrors[currentErrorIndex];
-            const manualCorrection = document.getElementById('manual-correction').value;
-            if (manualCorrection) {
-                payrollData[error.index][error.field] = manualCorrection;
-            } else {
-                payrollData[error.index][error.field] = error.suggestion;
-            }
+            payrollData[error.index][error.field] = document.getElementById('suggested-value').textContent;
             currentErrorIndex++;
             showCorrectionModal();
         });
@@ -323,6 +330,36 @@
         document.getElementById('cancel-correction').addEventListener('click', () => {
             currentErrorIndex = validationErrors.length;
             showCorrectionModal();
+        });
+
+        document.getElementById('manual-correction-btn').addEventListener('click', () => {
+            document.getElementById('manual-correction-modal').style.display = 'block';
+            document.getElementById('manual-correction-input').value = document.getElementById('suggested-value').textContent;
+        });
+
+        document.getElementById('cancel-manual-correction').addEventListener('click', () => {
+            document.getElementById('manual-correction-modal').style.display = 'none';
+        });
+
+        document.getElementById('save-manual-correction').addEventListener('click', () => {
+            const manualCorrection = document.getElementById('manual-correction-input').value;
+            document.getElementById('suggested-value').textContent = manualCorrection;
+            document.getElementById('manual-correction-modal').style.display = 'none';
+        });
+
+        document.getElementById('title-case-btn').addEventListener('click', () => {
+            const input = document.getElementById('manual-correction-input');
+            input.value = input.value.toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
+        });
+
+        document.getElementById('upper-case-btn').addEventListener('click', () => {
+            const input = document.getElementById('manual-correction-input');
+            input.value = input.value.toUpperCase();
+        });
+
+        document.getElementById('lower-case-btn').addEventListener('click', () => {
+            const input = document.getElementById('manual-correction-input');
+            input.value = input.value.toLowerCase();
         });
     </script>
 </body>
