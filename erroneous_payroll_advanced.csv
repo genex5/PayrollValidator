@@ -1,0 +1,31 @@
+Employee ID,Name,Hours Worked,Hourly Rate,Email,State,Country
+1,john doe,40,25,john.doe@example.com,california,USA
+2, jane smith ,-5,30,jane.smith@,New Yrok,U.S.A.
+3, peter jones,45,abc,peter.jones@example.com,florida,United States
+4,mary williams,35,-10,mary.williams@.com,arizona,US
+5,  michael brown,50,22,michael.brown@example,  Texas,USA
+6,jennifer davis,42,28,jennifer.davis@example.com,georgia,U.S.A
+7,william miller,38,32,william.miller@.net,washington,United States
+8,linda wilson,abc,29,linda.wilson@example.com,colorado,US
+9,robert moore,48,26,robert.moore@example,oregon,USA
+10,patricia taylor,36,35,patricia.taylor@.org,nevada,U.S.A
+11,james anderson,41,27,james.anderson@example.com,  utah,United States
+12,barbara thomas,-8,31,barbara.thomas@,michigan,US
+13,david jackson,46,abc,david.jackson@example.com,illinois,USA
+14,elizabeth white,33,-12,elizabeth.white@.com,ohio,U.S.A
+15,richard harris,52,24,richard.harris@example,pennsylvania,United States
+16,susan martin,44,33,susan.martin@example.com,virginia,US
+17,joseph thompson,39,36,joseph.thompson@.net,maryland,USA
+18,jessica garcia,abc,30,jessica.garcia@example.com,massachusetts,U.S.A
+19,thomas martinez,49,28,thomas.martinez@example,connecticut,United States
+20,sarah robinson,37,38,sarah.robinson@.org,minnesota,US
+21,charles clark,43,29,charles.clark@example.com,wisconsin,USA
+22,karen rodriguez,-10,34,karen.rodriguez@,missouri,U.S.A
+23,daniel lewis,47,abc,daniel.lewis@example.com,kansas,United States
+24,nancy lee,34,-15,nancy.lee@.com,iowa,US
+25,matthew walker,54,26,matthew.walker@example,oklahoma,USA
+26,betty hall,45,35,betty.hall@example.com,arkansas,U.S.A
+27,donald allen,40,38,donald.allen@.net,louisiana,United States
+28,sandra young,abc,32,sandra.young@example.com,mississippi,US
+29,paul hernandez,51,29,paul.hernandez@example,alabama,USA
+30,donna king,-12,37,donna.king@,tennessee,U.S.A

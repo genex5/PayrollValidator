@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payroll Data Management</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        #log {
+            white-space: pre-wrap;
+            background: #eee;
+            padding: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Payroll Data Management</h1>
+
+    <h2>Add New Record</h2>
+    <form id="add-record-form">
+        <input type="text" id="employee-id" placeholder="Employee ID" required>
+        <input type="text" id="name" placeholder="Name" required>
+        <input type="number" id="hours-worked" placeholder="Hours Worked" required>
+        <input type="number" id="hourly-rate" placeholder="Hourly Rate" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="text" id="state" placeholder="State" required>
+        <input type="text" id="country" placeholder="Country" required>
+        <button type="submit">Add Record</button>
+    </form>
+
+    <h2>Payroll Data</h2>
+    <button id="save-csv">Save as CSV</button>
+    <button id="export-csv">Export as CSV</button>
+    <input type="file" id="import-csv" accept=".csv">
+    <button id="validate-data">Validate Data</button>
+    <button id="approve-top-5">Approve Top 5</button>
+    <button id="approve-top-10">Approve Top 10</button>
+    <button id="approve-all">Approve All</button>
+    <div id="progress-bar-container" style="display: none;">
+        <div id="progress-bar" style="width: 0%; height: 20px; background-color: yellow;"></div>
+    </div>
+    <table id="payroll-table">
+        <thead>
+            <tr>
+                <th>Employee ID</th>
+                <th>Name</th>
+                <th>Hours Worked</th>
+                <th>Hourly Rate</th>
+                <th>Gross Pay</th>
+                <th>Email</th>
+                <th>State</th>
+                <th>Country</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <h2>Log</h2>
+    <div id="log"></div>
+
+
+    <script>
+        const addRecordForm = document.getElementById('add-record-form');
+        const payrollTableBody = document.querySelector('#payroll-table tbody');
+        let payrollData = [];
+
+        addRecordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newRecord = {
+                employeeId: document.getElementById('employee-id').value,
+                name: document.getElementById('name').value,
+                hoursWorked: parseFloat(document.getElementById('hours-worked').value),
+                hourlyRate: parseFloat(document.getElementById('hourly-rate').value),
+                email: document.getElementById('email').value,
+                state: document.getElementById('state').value,
+                country: document.getElementById('country').value
+            };
+            payrollData.push(newRecord);
+            renderTable();
+            addRecordForm.reset();
+        });
+
+        function renderTable() {
+            payrollTableBody.innerHTML = '';
+            payrollData.forEach((record, index) => {
+                const row = document.createElement('tr');
+                let rowHTML = `<td>${record.employeeId}</td>`;
+                for (const field in record) {
+                    if (field === 'employeeId') continue;
+                    const error = validationErrors.find(e => e.index === index && e.field === field);
+                    if (error) {
+                        rowHTML += `<td><span style="background-color: yellow; text-decoration: line-through;">${record[field]}</span> <span style="background-color: turquoise;">${error.suggestion}</span></td>`;
+                    } else {
+                        rowHTML += `<td>${record[field]}</td>`;
+                    }
+                }
+                const grossPay = record.hoursWorked * record.hourlyRate;
+                rowHTML += `<td>${grossPay.toFixed(2)}</td>`;
+                row.innerHTML = rowHTML;
+                payrollTableBody.appendChild(row);
+            });
+        }
+
+        function downloadCSV(csv, filename) {
+            const csvFile = new Blob([csv], {type: 'text/csv'});
+            const downloadLink = document.createElement('a');
+            downloadLink.download = filename;
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = 'none';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+        }
+
+        function exportToCSV() {
+            const headers = ['Employee ID', 'Name', 'Hours Worked', 'Hourly Rate', 'Email', 'State', 'Country'];
+            const rows = payrollData.map(record =>
+                `${record.employeeId},${record.name},${record.hoursWorked},${record.hourlyRate},${record.email},${record.state},${record.country}`
+            );
+            const csv = [headers.join(','), ...rows].join('\n');
+            downloadCSV(csv, 'payroll.csv');
+        }
+
+        document.getElementById('save-csv').addEventListener('click', exportToCSV);
+        document.getElementById('export-csv').addEventListener('click', exportToCSV);
+
+        document.getElementById('import-csv').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const text = e.target.result;
+                    const rows = text.replace(/\r\n/g, '\n').split('\n').slice(1);
+                    rows.forEach(row => {
+                        const [employeeId, name, hoursWorked, hourlyRate, email, state, country] = row.split(',');
+                        if (employeeId && name && hoursWorked && hourlyRate) {
+                            payrollData.push({
+                                employeeId,
+                                name,
+                                hoursWorked: parseFloat(hoursWorked),
+                                hourlyRate: parseFloat(hourlyRate),
+                                email,
+                                state,
+                                country
+                            });
+                        }
+                    });
+                    renderTable();
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        let validationErrors = [];
+        document.getElementById('validate-data').addEventListener('click', () => {
+            validationErrors = [];
+            const log = document.getElementById('log');
+            log.innerHTML = '';
+
+            payrollData.forEach((record, index) => {
+                if (isNaN(record.hoursWorked) || record.hoursWorked <= 0) {
+                    validationErrors.push({index, field: 'hoursWorked', suggestion: 40, message: `Invalid hours worked for ${record.name}`});
+                }
+                if (isNaN(record.hourlyRate) || record.hourlyRate <= 0) {
+                    validationErrors.push({index, field: 'hourlyRate', suggestion: 15, message: `Invalid hourly rate for ${record.name}`});
+                }
+            });
+
+            if (validationErrors.length > 0) {
+                log.innerHTML = 'Validation Errors Found:\\n' + validationErrors.map(e => e.message).join('\\n');
+            } else {
+                log.innerHTML = 'No validation errors found.';
+            }
+        });
+
+        function simulateProgress(color, onComplete) {
+            const progressBarContainer = document.getElementById('progress-bar-container');
+            const progressBar = document.getElementById('progress-bar');
+            progressBarContainer.style.display = 'block';
+            progressBar.style.backgroundColor = color;
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                    progressBarContainer.style.display = 'none';
+                    onComplete();
+                } else {
+                    width++;
+                    progressBar.style.width = width + '%';
+                }
+            }, 10);
+        }
+
+        document.getElementById('validate-data').addEventListener('click', () => {
+            simulateProgress('yellow', () => {
+                validationErrors = [];
+                const log = document.getElementById('log');
+                log.innerHTML = '';
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                payrollData.forEach((record, index) => {
+                    // Name checks
+                    const cleanedName = record.name.trim().toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
+                    if (record.name !== cleanedName) {
+                        validationErrors.push({index, field: 'name', suggestion: cleanedName, message: `Formatting issues in name for ${record.name}`});
+                    }
+
+                    // Hours and Rate checks
+                    if (isNaN(record.hoursWorked) || record.hoursWorked <= 0) {
+                        validationErrors.push({index, field: 'hoursWorked', suggestion: 40, message: `Invalid hours worked for ${record.name}`});
+                    }
+                    if (isNaN(record.hourlyRate) || record.hourlyRate <= 0) {
+                        validationErrors.push({index, field: 'hourlyRate', suggestion: 15, message: `Invalid hourly rate for ${record.name}`});
+                    }
+
+                    // Email check
+                    if (!emailRegex.test(record.email)) {
+                        const nameParts = cleanedName.toLowerCase().split(' ');
+                        const suggestedEmail = `${nameParts[0]}.${nameParts[1]}@example.com`;
+                        validationErrors.push({index, field: 'email', suggestion: suggestedEmail, message: `Invalid email format for ${record.name}`});
+                    }
+
+                    // State and Country checks
+                    const cleanedState = record.state.trim().toLowerCase().split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
+                    if (record.state !== cleanedState) {
+                        validationErrors.push({index, field: 'state', suggestion: cleanedState, message: `Formatting issues in state for ${record.name}`});
+                    }
+
+                    const countryCorrections = {'u.s.a.': 'USA', 'united states': 'USA'};
+                    const trimmedCountry = record.country.trim().toLowerCase();
+                     if (countryCorrections[trimmedCountry]) {
+                        validationErrors.push({index, field: 'country', suggestion: countryCorrections[trimmedCountry], message: `Potential misspelling in country for ${record.name}`});
+                    }
+                });
+
+                if (validationErrors.length > 0) {
+                    log.innerHTML = 'Validation Errors Found:\\n' + validationErrors.map(e => e.message).join('\\n');
+                } else {
+                    log.innerHTML = 'No validation errors found.';
+                }
+            });
+        });
+
+        function approveCorrections(count) {
+            const errorsToCorrect = validationErrors.slice(0, count);
+            errorsToCorrect.forEach(error => {
+                payrollData[error.index][error.field] = error.suggestion;
+            });
+            validationErrors.splice(0, count);
+            renderTable();
+        }
+
+        document.getElementById('approve-top-5').addEventListener('click', () => {
+            approveCorrections(5);
+        });
+
+        document.getElementById('approve-top-10').addEventListener('click', () => {
+            approveCorrections(10);
+        });
+
+        document.getElementById('approve-all').addEventListener('click', () => {
+            approveCorrections(validationErrors.length);
+        });
+    </script>
+</body>
+</html>
